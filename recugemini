@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Générateur de Reçu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        #receipt-container {
+            font-family: 'Inter', Arial, sans-serif;
+            width: 800px;
+            background: white;
+            color: #000;
+            padding: 20px 40px;
+            box-sizing: border-box;
+            position: absolute;
+            left: -9999px;
+            top: 0;
+        }
+
+        .receipt-half { display: flex; flex-direction: column; gap: 15px; }
+        .header-section { display: flex; justify-content: space-between; align-items: flex-start; }
+        .logo-box { display: flex; flex-direction: column; align-items: center; width: 200px; }
+        .logo-stars { font-size: 14px; letter-spacing: 2px; color: #333; line-height: 1; }
+        .chu-title { font-weight: 700; font-size: 13px; margin: 2px 0; }
+        .logo-chu-text { color: #0055A4; font-size: 55px; font-weight: 900; line-height: 0.8; margin-top: 5px; }
+        .logo-chu-sub { color: #0055A4; font-size: 8px; font-weight: 700; letter-spacing: -0.2px; margin-top: 2px; }
+        .logo-cocody-box { background-color: #E30613; color: white; padding: 2px 8px; font-size: 12px; font-weight: 700; margin-top: 4px; display: inline-block; }
+        .phone-number { font-weight: 800; font-size: 16px; margin-top: 15px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; width: 100%; text-align: center; }
+
+        .receipt-title-box { flex: 1; padding-left: 100px; }
+        .receipt-title-box h1 { font-size: 20px; font-weight: 700; margin: 0; text-transform: uppercase; }
+        .receipt-title-box p { color: #666; margin: 5px 0; font-size: 14px; }
+        .paye-text { color: #00B050; font-weight: 700; font-size: 18px; margin-top: 10px; }
+
+        .qr-box { width: 80px; height: 80px; }
+
+        .payment-details { margin-top: -30px; padding-left: 300px; font-size: 13px; line-height: 1.6; color: #333; }
+
+        .info-boxes { display: flex; gap: 20px; margin-top: 15px; }
+        .info-box { border: 1px solid #ddd; border-radius: 6px; padding: 12px; flex: 1; font-size: 13px; line-height: 1.8; }
+        .info-box strong { font-weight: 700; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+        th, td { border: 1px solid #eaeaea; padding: 10px; text-align: left; }
+        th { background-color: #fafafa; font-weight: 700; color: #333; }
+
+        .scissors-divider { display: flex; align-items: center; justify-content: center; margin: 20px 0; color: #888; }
+        .scissors-divider span.line { flex: 1; border-bottom: 2px dotted #aaa; }
+        .scissors-divider span.icon { font-size: 18px; margin: 0 15px; transform: rotate(-90deg); }
+
+        .footer-text { display: flex; justify-content: space-between; font-size: 11px; color: #666; margin-top: 10px; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 antialiased selection:bg-blue-200">
+
+    <div class="max-w-md mx-auto my-6 bg-white rounded-xl shadow-md overflow-hidden md:max-w-lg border border-gray-200">
+        <div class="bg-blue-600 p-4 text-white text-center">
+            <h2 class="text-xl font-bold">Générateur Reçu CHU</h2>
+            <p class="text-xs opacity-80 mt-1">Outil statique autorisé pour tests</p>
+        </div>
+        
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Zone 1 : Patient</label>
+                <div class="text-xs text-gray-500 mb-2">Ex: KONE SALI 08354290926 CAT2 33ans 456283902</div>
+                <textarea id="zone1" rows="3" class="w-full border rounded-lg p-3 text-sm focus:ring-2 outline-none transition"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Zone 2 : Dates d'hospitalisation</label>
+                <div class="text-xs text-gray-500 mb-2">Ex: 20/09/2026 au 23/09/2026</div>
+                <input type="text" id="zone2" class="w-full border rounded-lg p-3 text-sm focus:ring-2 outline-none transition">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Zone 3 : Enregistré par</label>
+                <input type="text" id="zone3" list="enregistre-list" class="w-full border rounded-lg p-3 text-sm focus:ring-2 outline-none transition">
+                <datalist id="enregistre-list">
+                    <option value="ALLEGBE ARDON RUBEN BORIS JOSE">
+                    <option value="BOH KANGRO">
+                    <option value="AGRE OHIE JEAN FERLUS">
+                    <option value="KOUAME AFFOUE SABINE">
+                    <option value="KPAZAI ROCK FELLER">
+                </datalist>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Zone 4 : Encaissé par</label>
+                <input type="text" id="zone4" list="encaisse-list" class="w-full border rounded-lg p-3 text-sm focus:ring-2 outline-none transition">
+                <datalist id="encaisse-list">
+                    <option value="AKA OI AKA LAURENT">
+                    <option value="KOFFI FRANCOISE AMLAN">
+                </datalist>
+            </div>
+            <div id="error-msg" class="text-red-500 text-sm hidden font-medium text-center"></div>
+            <button id="generate-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg flex justify-center items-center gap-2">Générer le Reçu PDF</button>
+        </div>
+    </div>
+
+    <div id="receipt-container"></div>
+
+    <script>
+        const priceMap = { 'CAT1': 30000, 'CAT2': 20000, 'CAT3': 10000 };
+        function formatNumber(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+        function pad(n) { return n.toString().padStart(2, '0'); }
+        function formatDate(date) { return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`; }
+        function formatTime(date) { return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`; }
+        function parseFRDate(dateStr) {
+            const parts = dateStr.trim().split('/');
+            return parts.length === 3 ? new Date(parts[2], parts[1] - 1, parts[0]) : null;
+        }
+
+        document.getElementById('generate-btn').addEventListener('click', () => {
+            const z1 = document.getElementById('zone1').value.trim();
+            const z2 = document.getElementById('zone2').value.trim();
+            const z3 = document.getElementById('zone3').value.trim();
+            const z4 = document.getElementById('zone4').value.trim();
+            const errorEl = document.getElementById('error-msg');
+            errorEl.classList.add('hidden');
+
+            if(!z1 || !z2 || !z3 || !z4) return (errorEl.textContent = "Veuillez remplir toutes les zones.", errorEl.classList.remove('hidden'));
+
+            const z1Regex = /^(.+?)\s+(\d+)\s+(CAT[1-3])\s+(\d+)ans\s+(\d+)$/i;
+            const match1 = z1.match(z1Regex);
+            if(!match1) return (errorEl.textContent = "Erreur Zone 1.", errorEl.classList.remove('hidden'));
+
+            const patientName = match1[1].trim().toUpperCase();
+            const receiptNum = match1[2];
+            const cat = match1[3].toUpperCase();
+            const age = match1[4];
+            const isn = match1[5];
+
+            const z2Regex = /(\d{2}\/\d{2}\/\d{4})\s*au\s*(\d{2}\/\d{2}\/\d{4})/i;
+            const match2 = z2.match(z2Regex);
+            if(!match2) return (errorEl.textContent = "Erreur Zone 2.", errorEl.classList.remove('hidden'));
+
+            const startDateStr = match2[1];
+            const endDateStr = match2[2];
+            const startDate = parseFRDate(startDateStr);
+            const endDate = parseFRDate(endDateStr);
+
+            if(!startDate || !endDate || startDate > endDate) return (errorEl.textContent = "Dates invalides.", errorEl.classList.remove('hidden'));
+
+            const qt = Math.ceil(Math.abs(endDate - startDate) / (1000 * 60 * 60 * 24));
+            const pu = priceMap[cat] || 10000;
+            const totalAmount = pu * qt;
+            
+            const now = new Date();
+            const paymentDate = new Date(now.getTime() - 40000);
+            
+            const dateEmiStr = `${formatDate(now)} , ${formatTime(now)}`;
+            const datePaiStr = `${formatDate(paymentDate)} , ${formatTime(paymentDate)}`;
+            const topDateStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+            const buildHalf = (idPrefix) => `
+                <div class="receipt-half">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;"><span>${topDateStr}</span><span>Undefined</span></div>
+                    <div class="header-section">
+                        <div class="logo-box">
+                            <div class="logo-stars">**************************</div>
+                            <div class="chu-title">CHU COCODY</div>
+                            <div class="logo-stars">**************************</div>
+                            <div class="logo-chu-text">CHU</div>
+                            <div class="logo-chu-sub">CENTRE HOSPITALIER UNIVERSITAIRE</div>
+                            <div class="logo-cocody-box">COCODY</div>
+                            <div class="phone-number">00225 27 22 48 10 00</div>
+                        </div>
+                        <div class="receipt-title-box"><h1>REÇU</h1><p>N° ${receiptNum}</p><div class="paye-text">PAYÉ</div></div>
+                        <div class="qr-box" id="${idPrefix}-qr"></div>
+                    </div>
+                    <div class="payment-details">
+                        Mode de paiement : Espèces<br>Date de paiement : ${datePaiStr}<br>Date d'émission : ${dateEmiStr}<br>
+                        Montant total : ${formatNumber(totalAmount)} FCFA<br>Montant reçu : ${formatNumber(totalAmount)} FCFA<br>Monnaie : 0 FCFA
+                    </div>
+                    <div class="info-boxes">
+                        <div class="info-box"><strong>Nom & Prenom :</strong> ${patientName}<br><strong>ISN & Sexe :</strong> ${isn} / F<br><strong>Age [Année / mois / jours ] :</strong> ${age} ans/ 0 mois / 0 jour (s)</div>
+                        <div class="info-box"><strong>Service :</strong> GYNECOLOGIE<br><strong>Enregistré par :</strong> ${z3.toUpperCase()}<br><strong>Encaissé par :</strong> ${z4.toUpperCase()}</div>
+                    </div>
+                    <table>
+                        <thead><tr><th>N° D'ORDRE</th><th>PRESTATION</th><th>PU INITIAL</th><th>QT</th><th>RÉDUCTION</th><th>TOTAL À PAYER</th></tr></thead>
+                        <tbody><tr><td></td><td>HOSPITALISATION GYNECOLOGIE ${cat.replace('CAT', 'CAT ')}/ GOP. du ${startDateStr} au ${endDateStr}</td><td>${formatNumber(pu)} FCFA</td><td>${qt}</td><td>Aucune</td><td>${formatNumber(totalAmount)} FCFA</td></tr></tbody>
+                    </table>
+                </div>`;
+
+            const container = document.getElementById('receipt-container');
+            container.innerHTML = `${buildHalf('top')}<div class="scissors-divider"><span class="line"></span><span class="icon">✂</span><span class="line"></span></div>${buildHalf('bottom')}<div class="footer-text"><span>https://v2.sgch.app/workspace/GCF/ticket</span><span>1/1</span></div>`;
+
+            setTimeout(() => {
+                new QRCode(document.getElementById('top-qr'), { text: receiptNum, width: 80, height: 80, correctLevel: QRCode.CorrectLevel.M });
+                new QRCode(document.getElementById('bottom-qr'), { text: receiptNum, width: 80, height: 80, correctLevel: QRCode.CorrectLevel.M });
+                
+                html2pdf().set({ margin: 0, filename: \`Recu_\${receiptNum}.pdf\`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).from(container).outputPdf('blob').then(async (pdfBlob) => {
+                    const filename = \`Recu_\${receiptNum}.pdf\`;
+                    if (navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], filename, { type: 'application/pdf' })] })) {
+                        try { await navigator.share({ files: [new File([pdfBlob], filename, { type: 'application/pdf' })], title: 'Reçu CHU' }); } 
+                        catch (e) { download(pdfBlob, filename); }
+                    } else download(pdfBlob, filename);
+                    ['zone1','zone2','zone3','zone4'].forEach(id => document.getElementById(id).value = '');
+                });
+            }, 100);
+        });
+
+        function download(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
